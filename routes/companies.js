@@ -13,26 +13,9 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// // GET /companies/[code] : Return obj of company --> Dont need this route anymore since we want to show invoice data
-// router.get("/:code", async (req, res, next) => {
-//   try {
-//     const { code } = req.params;
-//     const results = await db.query(`SELECT * FROM companies WHERE code = $1`, [
-//       code,
-//     ]);
-//     if (results.rows.length === 0) {
-//       throw new ExpressError(`Cannot find company with code of ${code}`, 404);
-//     }
-//     return res.json({ companies: results.rows[0] });
-//   } catch (e) {
-//     return next(e);
-//   }
-// });
-
 //GET /companies/[code] : Return obj of company: {company: {code, name, description, invoices: [id, ...]}} If the company given cannot be found, this should return a 404 status response.
 router.get("/:code", async (req, res, next) => {
   try {
-    // Fetch the company data
     const companyRes = await db.query(
       `SELECT * FROM companies WHERE code = $1`,
       [req.params.code]
@@ -45,16 +28,14 @@ router.get("/:code", async (req, res, next) => {
       );
     }
 
-    // Fetch the invoices for the company
     const invoiceRes = await db.query(
       `SELECT id FROM invoices WHERE comp_code = $1`,
       [req.params.code]
     );
 
     const company = companyRes.rows[0];
-    const invoices = invoiceRes.rows.map((invoice) => invoice.id); // Extract only the IDs
+    const invoices = invoiceRes.rows.map((invoice) => invoice.id);
 
-    // Combine the company data and the invoice IDs
     company.invoices = invoices;
 
     return res.json({ company: company });
@@ -102,7 +83,7 @@ router.delete("/:code", async (req, res, next) => {
     const results = await db.query(`DELETE FROM companies WHERE code=$1`, [
       code,
     ]);
-    if (results.rows.length === 0) {
+    if (results.rowCount === 0) {
       throw new ExpressError(`Cannot find company with code of ${code}`, 404);
     }
     return res.send({ status: "DELETED" });

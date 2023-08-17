@@ -33,6 +33,9 @@ router.get("/:id", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const { comp_code, amt } = req.body;
+    if (!comp_code || amt === undefined) {
+      throw new ExpressError("comp_code and amt are required", 400);
+    }
     const results = await db.query(
       `INSERT INTO invoices (comp_code, amt) VALUES ($1, $2) RETURNING id, comp_code, amt, paid, add_date, paid_date`,
       [comp_code, amt]
