@@ -14,6 +14,7 @@ router.get("/", async (req, res, next) => {
 });
 
 //GET /companies/[code] : Return obj of company: {company: {code, name, description, invoices: [id, ...]}} If the company given cannot be found, this should return a 404 status response.
+// add: when viewing details for a company, you can see the names of the industries for that company
 router.get("/:code", async (req, res, next) => {
   try {
     const companyRes = await db.query(
@@ -33,10 +34,20 @@ router.get("/:code", async (req, res, next) => {
       [req.params.code]
     );
 
+    const industryRes = await db.query(
+      `SELECT industry 
+       FROM company_industries
+       JOIN industries ON company_industries.industry_code = industries.code
+       WHERE comp_code = $1`,
+      [req.params.code]
+    );
+
     const company = companyRes.rows[0];
     const invoices = invoiceRes.rows.map((invoice) => invoice.id);
+    const industries = industryRes.rows.map((industry) => industry.industry);
 
     company.invoices = invoices;
+    company.industries = industries;
 
     return res.json({ company: company });
   } catch (e) {

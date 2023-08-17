@@ -12,10 +12,24 @@ beforeEach(async () => {
     `INSERT INTO companies (code, name, description) VALUES ('goog', 'Google', 'Search Engine') RETURNING code, name, description`
   );
   testCompany = result.rows[0];
+
+  const industryResult = await db.query(
+    `INSERT INTO industries (code, industry) VALUES ('tech', 'Technology')
+    ON CONFLICT (code) DO NOTHING 
+    RETURNING code, industry`
+  );
+
+  testIndustry = industryResult.rows[0];
+  await db.query(
+    `INSERT INTO company_industries (comp_code, industry_code) VALUES ($1, $2)`,
+    [testCompany.code, testIndustry.code]
+  );
 });
 
 afterEach(async () => {
   await db.query(`DELETE FROM companies`);
+  await db.query(`DELETE FROM industries`);
+  await db.query(`DELETE FROM company_industries`);
 });
 
 afterAll(async () => {
@@ -36,6 +50,9 @@ describe("GET /companies/:code", () => {
     const response = await request(app).get(`/companies/${testCompany.code}`);
     expect(response.statusCode).toBe(200);
     expect(response.body.company).toHaveProperty("code", "goog");
+    expect(response.body.company.industries).toEqual(
+      expect.arrayContaining(["Technology"])
+    );
   });
 
   test("Responds with 404 for non-existent company", async () => {
